@@ -176,6 +176,18 @@ open your endpoint and look at the recent deliveries:
 
 Remember that Vercel only picks up environment variables on a **redeploy**.
 
+### Google Tag Manager
+
+Set `NEXT_PUBLIC_GTM_ID` to your container (`GTM-XXXXXXX`). The container loads only
+after the visitor accepts cookies, like every other tag here.
+
+The store pushes GA4 ecommerce events onto the dataLayer — `view_item`, `add_to_cart`,
+`begin_checkout` and `purchase`, each with an `ecommerce` object — so your GTM tags can
+trigger on them without any extra code.
+
+Use GTM **or** `NEXT_PUBLIC_GA_ID`, not both: GA4 configured in both places counts every
+page view twice.
+
 ## Analytics and live view
 
 /admin → **Analytics** shows sessions, visitors, page views, conversion rate, sales, a conversion funnel

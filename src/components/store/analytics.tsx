@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import Script from 'next/script';
 import { useEffect, useState } from 'react';
 
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
 const PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID;
@@ -13,9 +14,13 @@ const STORAGE_KEY = 'mss-cookie-consent';
 type Consent = 'granted' | 'denied';
 
 /**
- * Loads Google (GA4 / Ads) and the Meta Pixel — but only after the visitor
- * accepts. Nothing is requested from Google or Meta before that, which is
- * what Quebec's Law 25 and the GDPR expect for advertising cookies.
+ * Loads Google Tag Manager, Google (GA4 / Ads) and the Meta Pixel — but only
+ * after the visitor accepts. Nothing is requested from Google or Meta before
+ * that, which is what Quebec's Law 25 and the GDPR expect for advertising
+ * cookies.
+ *
+ * With a GTM container you normally configure GA4 inside GTM and leave
+ * NEXT_PUBLIC_GA_ID empty, or page views get counted twice.
  *
  * Renders nothing at all until at least one ID is set in the environment.
  */
@@ -39,7 +44,7 @@ export function Analytics() {
     (window as Window & { fbq?: (...a: unknown[]) => void }).fbq?.('track', 'PageView');
   }, [pathname, consent]);
 
-  if (!GA_ID && !ADS_ID && !PIXEL_ID) return null;
+  if (!GTM_ID && !GA_ID && !ADS_ID && !PIXEL_ID) return null;
 
   const choose = (value: Consent) => {
     try {
@@ -54,6 +59,11 @@ export function Analytics() {
 
   return (
     <>
+      {consent === 'granted' && GTM_ID && (
+        <Script id="gtm" strategy="afterInteractive">
+          {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${GTM_ID}');`}
+        </Script>
+      )}
       {consent === 'granted' && googleId && (
         <>
           <Script src={`https://www.googletagmanager.com/gtag/js?id=${googleId}`} strategy="afterInteractive" />
