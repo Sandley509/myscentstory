@@ -169,7 +169,7 @@ export async function startCheckout(opts: { embedded?: boolean } = {}): Promise<
     expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
     ...(opts.embedded
       ? {
-          ui_mode: 'embedded' as const,
+          ui_mode: 'embedded_page' as const,
           // Embedded checkout has no cancel URL: the shopper simply leaves the page.
           return_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`
         }
