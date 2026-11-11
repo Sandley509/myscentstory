@@ -1,5 +1,7 @@
 import { PurchaseTracker } from '@/components/store/purchase-tracker';
 import { trackingLink } from '@/lib/commerce/order-link';
+import { ensureOrderForSession } from '@/lib/commerce/recover-orders';
+import { stripeConfigured } from '@/lib/stripe';
 import type { CheckoutSnapshot } from '@/lib/commerce/db';
 import { round2, toNumber } from '@/lib/commerce/pricing';
 import { supabaseConfigured } from '@/lib/supabase/env';
@@ -13,10 +15,12 @@ export const dynamic = 'force-dynamic';
 type Props = { searchParams: Promise<{ session_id?: string }> };
 
 /**
- * Stripe sends the customer here after payment. The order itself is created by
- * the webhook, which can land a second or two later — so this page never fails
- * if the order isn't in the database yet. Conversion tracking reads the frozen
- * checkout snapshot, which always exists by the time the customer has paid.
+ * Stripe sends the customer here after payment.
+ *
+ * The webhook normally creates the order a second or two earlier. This page
+ * creates it too if it isn't there yet, so a webhook that is misconfigured or
+ * unreachable can never lose a paid order. Both paths are idempotent, so
+ * whichever runs second finds the order and stops.
  */
 export default async function CheckoutSuccessPage({ searchParams }: Props) {
   const { session_id } = await searchParams;
@@ -28,6 +32,10 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
 
   if (supabaseConfigured && session_id?.startsWith('cs_')) {
     try {
+      // Safety net: create the order now if the webhook hasn't.
+      if (stripeConfigured()) {
+        await ensureOrderForSession(session_id).catch((e) => console.error('[success] order recovery failed:', e));
+      }
       const db = createServiceClient();
       const [{ data: order }, { data: checkout }] = await Promise.all([
         db.from('orders').select('id, order_number, email, total, tax_total').eq('stripe_checkout_session_id', session_id).maybeSingle(),

@@ -140,6 +140,42 @@ Customers track at **/track** with their order number and email (both are needed
 look up someone else's order). The emails and the order-success page carry a private link that opens
 the tracking page directly.
 
+### Checkout on your own page
+
+Shoppers pay at **/checkout**, inside the store's own header and footer — Stripe's form is embedded
+there, so nobody is sent to a stripe.com page. Card fields still live in Stripe's iframe, so card
+numbers never reach this code and you stay on the light PCI questionnaire (SAQ-A).
+
+This needs **`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`** (Stripe → Developers → API keys → *Publishable
+key*, `pk_live_…` or `pk_test_…`). Without it, /checkout falls back to redirecting to Stripe's hosted
+page, exactly as before — so nothing breaks if you deploy before adding the key.
+
+The name and logo on the payment form come from Stripe, not from this code: set them in
+Stripe → Settings → **Business** (public business name) and **Branding** (logo, colours, font).
+
+### Paid on Stripe but no order in the admin?
+
+That means the webhook didn't reach the site. The order is not lost:
+
+- Shoppers who land on the thank-you page have their order created there as a fallback.
+- For the rest, /admin → Orders → **Check Stripe for missing orders** pulls in any paid payment
+  from the last 14 days that isn't recorded here, and sends its confirmation email. Running it
+  twice is safe; it never duplicates an order.
+
+Then fix the webhook itself, or every order needs the button. In Stripe → Developers → Webhooks,
+open your endpoint and look at the recent deliveries:
+
+| What you see | What it means |
+|---|---|
+| No endpoint at all | Create it — URL and events are listed above |
+| 400 "Webhook not configured" | `STRIPE_WEBHOOK_SECRET` isn't set on the deployment |
+| 400 "Invalid signature" | The signing secret doesn't match this endpoint, or test/live are mixed up |
+| 404 | Wrong URL; it must end in `/api/stripe/webhook` |
+| 500 | The site was reached but saving failed — check the Vercel logs |
+| No deliveries listed | The payment happened in Stripe's other mode (test vs live) |
+
+Remember that Vercel only picks up environment variables on a **redeploy**.
+
 ## Analytics and live view
 
 /admin → **Analytics** shows sessions, visitors, page views, conversion rate, sales, a conversion funnel

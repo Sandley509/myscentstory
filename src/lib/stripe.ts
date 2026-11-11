@@ -10,7 +10,14 @@ export function getStripe(): Stripe {
   if (!key) {
     throw new Error('STRIPE_SECRET_KEY is not set. Add it to .env and restart.');
   }
-  if (!stripe) stripe = new Stripe(key);
+  if (!stripe) {
+    // STRIPE_API_HOST only exists so the checkout flow can be exercised against
+    // a local stand-in during testing; unset in normal use, as it should be.
+    const host = process.env.STRIPE_API_HOST;
+    stripe = host
+      ? new Stripe(key, { host: host.split(':')[0], port: Number(host.split(':')[1] ?? 80), protocol: 'http' })
+      : new Stripe(key);
+  }
   return stripe;
 }
 

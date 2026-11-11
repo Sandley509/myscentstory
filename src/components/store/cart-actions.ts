@@ -1,7 +1,6 @@
 'use server';
 
 import { addToCart, getCart, removeFromCart, setCartDiscount, subscribeToNewsletter, attachEmailToCart, updateCart } from '@/lib/commerce';
-import { startCheckout } from '@/lib/commerce/checkout';
 import type { AttributeInput, Cart } from '@/lib/commerce/types';
 import { TAGS } from '@/lib/constants';
 import { revalidateTag } from 'next/cache';
@@ -98,18 +97,16 @@ export async function refreshCart(): Promise<Cart | undefined> {
  * it. `redirect()` throws internally, so it must stay OUTSIDE the try/catch.
  */
 export async function checkout(): Promise<{ ok: false; error: string } | void> {
-  let url: string;
   try {
     const cart = await getCart();
     if (!cart?.lines.length) return { ok: false, error: 'Your cart is empty.' };
-    const result = await startCheckout();
-    if (!result.ok) return result;
-    url = result.url;
   } catch (e) {
     console.error('[checkout]', e);
     return { ok: false, error: 'We couldn’t reach checkout. Please try again.' };
   }
-  redirect(url);
+  // /checkout creates the Stripe session: embedded on our own page, or a
+  // redirect to Stripe's hosted page when no publishable key is set.
+  redirect('/checkout');
 }
 
 /** Newsletter sign-up from the footer. */

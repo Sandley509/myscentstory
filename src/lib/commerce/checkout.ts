@@ -10,7 +10,12 @@ import type { CheckoutSnapshot, VariantRow } from './db';
 import { checkCustomerDiscount, findDiscount, getCartForCheckout, getStoreSettings } from './index';
 import { evaluateDiscount, round2, shippingFor, toCents, toNumber } from './pricing';
 
-export type StartCheckoutResult = { ok: true; url: string } | { ok: false; error: string };
+export type StartCheckoutResult =
+  /** Stripe's own hosted page; the shopper is sent to `url`. */
+  | { ok: true; mode: 'hosted'; url: string }
+  /** Stripe's form shown inside our own /checkout page. */
+  | { ok: true; mode: 'embedded'; clientSecret: string }
+  | { ok: false; error: string };
 
 /** Absolute origin of the current request (works behind Vercel/proxies). */
 export async function getOrigin(): Promise<string> {
@@ -26,7 +31,7 @@ export async function getOrigin(): Promise<string> {
  * Checkout Session for it. Prices, stock and discounts are re-validated here —
  * nothing from the browser is trusted.
  */
-export async function startCheckout(): Promise<StartCheckoutResult> {
+export async function startCheckout(opts: { embedded?: boolean } = {}): Promise<StartCheckoutResult> {
   const loaded = await getCartForCheckout();
   if (!loaded || !loaded.cart.lines.length) {
     return { ok: false, error: 'Your cart is empty.' };
@@ -162,12 +167,24 @@ export async function startCheckout(): Promise<StartCheckoutResult> {
     // Unpaid sessions expire after an hour (Stripe's minimum is 30 minutes), so an
     // abandoned checkout shows up in /admin → Abandoned carts with its email soon.
     expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
-    success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/?checkout=cancelled`
+    ...(opts.embedded
+      ? {
+          ui_mode: 'embedded' as const,
+          // Embedded checkout has no cancel URL: the shopper simply leaves the page.
+          return_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`
+        }
+      : {
+          success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${origin}/?checkout=cancelled`
+        })
   });
 
   await db.from('checkouts').update({ stripe_session_id: session.id }).eq('id', checkout.id);
 
+  if (opts.embedded) {
+    if (!session.client_secret) return { ok: false, error: 'Checkout is unavailable right now.' };
+    return { ok: true, mode: 'embedded', clientSecret: session.client_secret };
+  }
   if (!session.url) return { ok: false, error: 'Checkout is unavailable right now.' };
-  return { ok: true, url: session.url };
+  return { ok: true, mode: 'hosted', url: session.url };
 }

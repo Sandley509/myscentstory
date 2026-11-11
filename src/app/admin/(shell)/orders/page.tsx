@@ -1,5 +1,6 @@
 import { OrdersIcon } from '@/components/admin/icons';
 import { ListSearch } from '@/components/admin/list-search';
+import { RecoverOrdersButton } from '@/components/admin/recover-orders-button';
 import { Badge, Card, EmptyState, Page, Pagination, Tabs } from '@/components/admin/ui';
 import { requireStaffPage } from '@/lib/admin/auth';
 import { customerName, financialBadge, formatDate, formatMoney, fulfillmentBadge, orderStatusBadge } from '@/lib/admin/format';
@@ -65,11 +66,15 @@ export default async function OrdersPage({ searchParams }: Props) {
   const { count: total } = await supabase.from('orders').select('id', { count: 'exact', head: true });
 
   return (
-    <Page title="Orders">
+    <Page title="Orders" secondaryActions={total ? <RecoverOrdersButton /> : undefined}>
       <Card flush>
         {total === 0 ? (
           <EmptyState icon={<OrdersIcon width={48} height={48} />} heading="Your orders will show here">
-            When customers pay through Stripe Checkout, their orders appear here automatically.
+            <p>When customers pay through Stripe Checkout, their orders appear here automatically.</p>
+            <p className="mt-3">Paid on Stripe but nothing here? The webhook didn’t arrive — this brings those orders in:</p>
+            <div className="mt-3 flex justify-center">
+              <RecoverOrdersButton />
+            </div>
           </EmptyState>
         ) : (
           <>
