@@ -1,5 +1,6 @@
 'use client';
 
+import { randomId } from '@/lib/uuid';
 import { MediaUploader } from '@/components/admin/inputs';
 import { SaveBar, Toast } from '@/components/admin/overlays';
 import { Banner, Button, Card, Checkbox, Field, Page, Select, TextArea, TextInput } from '@/components/admin/ui';
@@ -135,7 +136,7 @@ function MenuEditor({
       ))}
       {items.length < MAX_NAV_LINKS && (
         <div>
-          <Button onClick={() => onChange((xs) => [...xs, { id: crypto.randomUUID(), label: '', link: '/collections/all' }])}>
+          <Button onClick={() => onChange((xs) => [...xs, { id: randomId(), label: '', link: '/collections/all' }])}>
             Add link
           </Button>
         </div>
@@ -244,7 +245,7 @@ function CategoryTilesEditor({
       })}
       {tiles.length < MAX_CATEGORY_TILES && (
         <div>
-          <Button onClick={() => onChange((ts) => [...ts, { id: crypto.randomUUID(), collection: unused?.handle ?? 'all', label: '', imageUrl: '' }])}>
+          <Button onClick={() => onChange((ts) => [...ts, { id: randomId(), collection: unused?.handle ?? 'all', label: '', imageUrl: '' }])}>
             Add tile
           </Button>
         </div>
@@ -454,6 +455,20 @@ export function ContentForm({
               </>
             )}
           </div>
+        </Card>
+      </Section>
+
+      <Section
+        title="All perfumes page"
+        description="The banner across the top of /collections/all. Every other category uses its own Banner photo, set in Products → Collections."
+      >
+        <Card>
+          <ImageField
+            label="Banner photo"
+            value={c.allPage.imageUrl}
+            onChange={(url) => set('allPage', 'imageUrl', url)}
+            helpText="Wide photo, about 2400 × 800 px. The words “All perfumes” sit on top in white, so keep the middle fairly plain. Without one the store draws its bottle artwork."
+          />
         </Card>
       </Section>
 

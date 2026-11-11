@@ -193,6 +193,7 @@ The default banner photo is `public/banners/hero.jpg`.
 The photo across the top of a category page (For her, For him, Unisex…) is that collection's own
 **Banner photo**: /admin → Products → Collections → open the collection. The same photo is used for its
 home page tile and when the page is shared. Without one the store draws its bottle artwork.
+*All perfumes* isn't a collection, so its banner lives in /admin → Online store → **All perfumes page**.
 
 ## SEO: what is built in
 

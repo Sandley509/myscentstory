@@ -39,6 +39,8 @@ export type SiteContent = {
     text: string;
     imageUrl: string;
   };
+  /** The "All perfumes" page, which isn't a collection, so it has no row to edit. */
+  allPage: { imageUrl: string };
   categories: {
     title: string;
     /** Up to 4 tiles; the first one is the large tile. Empty = the first 4 collections. */
@@ -103,6 +105,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     text: 'Know what you like? Start from the family and discover something new.',
     imageUrl: ''
   },
+  allPage: { imageUrl: '' },
   categories: { title: 'Discover by category', tiles: [] },
   welcome: {
     enabled: true,
@@ -184,6 +187,7 @@ export function normalizeContent(raw: unknown): SiteContent {
       text: text(r.families?.text, d.families.text, 200),
       imageUrl: cleanImage(r.families?.imageUrl, d.families.imageUrl)
     },
+    allPage: { imageUrl: cleanImage(r.allPage?.imageUrl, d.allPage.imageUrl) },
     categories: {
       title: text(r.categories?.title, d.categories.title, 60) || d.categories.title,
       tiles: (Array.isArray(r.categories?.tiles) ? (r.categories.tiles as unknown[]) : [])

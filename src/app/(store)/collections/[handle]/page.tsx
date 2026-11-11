@@ -3,7 +3,7 @@ import { Breadcrumbs } from '@/components/store/breadcrumbs';
 import { JsonLd } from '@/components/store/json-ld';
 import { ProductGrid } from '@/components/store/product-card';
 import { SortSelect } from '@/components/store/sort-select';
-import { getCollection, getCollectionProducts, getCollections, getProducts } from '@/lib/commerce';
+import { getCollection, getCollectionProducts, getCollections, getProducts, getSiteContent } from '@/lib/commerce';
 import type { Collection } from '@/lib/commerce/types';
 import { sorting } from '@/lib/constants';
 import { collectionJsonLd } from '@/lib/seo';
@@ -30,7 +30,17 @@ const ALL: Collection = {
   updatedAt: ''
 };
 
-const load = (handle: string) => (handle === 'all' ? Promise.resolve(ALL) : getCollection(handle).catch(() => undefined));
+/**
+ * "All perfumes" has no row in `collections`, so its banner photo is set in
+ * /admin → Online store → All perfumes page instead.
+ */
+async function load(handle: string): Promise<Collection | undefined> {
+  if (handle !== 'all') return getCollection(handle).catch(() => undefined);
+  const { allPage } = await getSiteContent();
+  return allPage.imageUrl
+    ? { ...ALL, image: { url: allPage.imageUrl, altText: '', width: 0, height: 0 } }
+    : ALL;
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;

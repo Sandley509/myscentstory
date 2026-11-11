@@ -1,5 +1,6 @@
 'use client';
 
+import { randomId } from '@/lib/uuid';
 import clsx from 'clsx';
 import { useEffect, useId, useRef, useState } from 'react';
 import { createBrowserSupabase } from '@/lib/supabase/client';
@@ -208,7 +209,7 @@ const readSize = (file: File) =>
 export async function uploadImage(file: File, folder: string): Promise<MediaItem> {
   const supabase = createBrowserSupabase();
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
-  const path = `${folder}/${crypto.randomUUID()}.${ext}`;
+  const path = `${folder}/${randomId()}.${ext}`;
   const [{ width, height }, { error }] = await Promise.all([
     readSize(file),
     supabase.storage.from('product-images').upload(path, file, {

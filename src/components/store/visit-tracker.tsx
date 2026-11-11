@@ -1,6 +1,7 @@
 'use client';
 
 import { isCrawler } from '@/lib/currency';
+import { randomId as uuid } from '@/lib/uuid';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
@@ -11,12 +12,6 @@ const PING_MS = 30 * 1000;
 /** A visitor number is replaced after 13 months, like the stats it belongs to. */
 const VISITOR_MAX_AGE_MS = 395 * 24 * 60 * 60 * 1000;
 
-const uuid = () =>
-  typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) =>
-        (Number(c) ^ (Math.random() * 16) >> (Number(c) / 4)).toString(16)
-      );
 
 function readJson<T>(key: string): T | null {
   try {
