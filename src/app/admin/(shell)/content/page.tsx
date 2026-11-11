@@ -1,4 +1,6 @@
 import { ContentForm } from '@/components/admin/content-form';
+import { automaticNav } from '@/components/store/header';
+import type { Collection } from '@/lib/commerce/types';
 import { requireStaffPage } from '@/lib/admin/auth';
 import { toNumber } from '@/lib/commerce/pricing';
 import { normalizeContent } from '@/lib/content';
@@ -24,6 +26,12 @@ export default async function ContentPage() {
     (c) => !c.handle.startsWith('hidden')
   );
   const initial = normalizeContent(data?.content);
+  // Nothing set yet: start from the menu the store shows today, so every link is editable.
+  if (!initial.nav.items.length) {
+    initial.nav.items = automaticNav(
+      published.map((c) => ({ handle: c.handle, title: c.title, path: `/collections/${c.handle}` }) as Collection)
+    ).map((i) => ({ label: i.title, link: i.path }));
+  }
   // Nothing chosen yet: start from what the home page shows today (its first four collections).
   if (!initial.categories.tiles.length) {
     initial.categories.tiles = published.slice(0, 4).map((c) => ({ collection: c.handle, label: '', imageUrl: '' }));

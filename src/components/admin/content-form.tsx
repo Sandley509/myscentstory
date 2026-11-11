@@ -4,7 +4,7 @@ import { MediaUploader } from '@/components/admin/inputs';
 import { SaveBar, Toast } from '@/components/admin/overlays';
 import { Banner, Button, Card, Checkbox, Field, Page, Select, TextArea, TextInput } from '@/components/admin/ui';
 import { saveContent } from '@/lib/admin/actions/content';
-import { DEFAULT_CONTENT, MAX_CATEGORY_TILES, type CategoryTileContent, type SiteContent } from '@/lib/content';
+import { DEFAULT_CONTENT, MAX_CATEGORY_TILES, MAX_NAV_LINKS, type CategoryTileContent, type NavLinkContent, type SiteContent } from '@/lib/content';
 import { useRouter } from 'next/navigation';
 import { useId, useMemo, useState, useTransition, type ReactNode } from 'react';
 
@@ -31,7 +31,7 @@ function LinkField({
   options,
   helpText
 }: {
-  label: string;
+  label?: string;
   value: string;
   onChange: (v: string) => void;
   options: LinkOption[];
@@ -77,6 +77,75 @@ function ImageField({
         onChange={(items) => onChange(items[0]?.url ?? '')}
       />
     </Field>
+  );
+}
+
+/** The links across the top of every page: their wording, their order and where they go. */
+function MenuEditor({
+  items,
+  onChange,
+  options
+}: {
+  items: NavLinkContent[];
+  onChange: (update: (items: NavLinkContent[]) => NavLinkContent[]) => void;
+  options: LinkOption[];
+}) {
+  const baseId = useId();
+  const update = (id: string | undefined, patch: Partial<NavLinkContent>) =>
+    onChange((xs) => xs.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  const move = (i: number, by: -1 | 1) =>
+    onChange((xs) => {
+      const next = [...xs];
+      [next[i], next[i + by]] = [next[i + by]!, next[i]!];
+      return next;
+    });
+
+  return (
+    <div className="flex flex-col gap-3">
+      {items.map((item, i) => (
+        <div key={item.id ?? i} className="grid grid-cols-1 gap-3 rounded-lg border border-admin-border p-3 sm:grid-cols-[1fr_1.4fr_auto]">
+          <Field label={i === 0 ? 'Wording' : undefined} htmlFor={`${baseId}-${i}-label`}>
+            <TextInput
+              id={`${baseId}-${i}-label`}
+              value={item.label}
+              maxLength={30}
+              placeholder="For her"
+              onChange={(e) => update(item.id, { label: e.target.value })}
+            />
+          </Field>
+          <LinkField
+            label={i === 0 ? 'Opens' : undefined}
+            value={item.link}
+            onChange={(v) => update(item.id, { link: v })}
+            options={options}
+            helpText=""
+          />
+          <div className={`flex items-end gap-1 ${i === 0 ? 'sm:pb-[2px]' : ''}`}>
+            <Button size="slim" variant="tertiary" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move ${item.label || `link ${i + 1}`} up`}>
+              ↑
+            </Button>
+            <Button size="slim" variant="tertiary" disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label={`Move ${item.label || `link ${i + 1}`} down`}>
+              ↓
+            </Button>
+            <Button size="slim" variant="tertiary" onClick={() => onChange((xs) => xs.filter((x) => x.id !== item.id))}>
+              Remove
+            </Button>
+          </div>
+        </div>
+      ))}
+      {items.length < MAX_NAV_LINKS && (
+        <div>
+          <Button onClick={() => onChange((xs) => [...xs, { id: crypto.randomUUID(), label: '', link: '/collections/all' }])}>
+            Add link
+          </Button>
+        </div>
+      )}
+      {items.length === 0 && (
+        <p className="text-admin-subdued">
+          No links: the store shows the automatic menu (Best sellers, New, your collections, All perfumes).
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -187,6 +256,7 @@ function CategoryTilesEditor({
 /** Gives each category tile an editor key (the server never stores it). */
 const withTileIds = (content: SiteContent): SiteContent => ({
   ...content,
+  nav: { items: content.nav.items.map((n, i) => ({ ...n, id: n.id ?? `nav-${i}` })) },
   categories: {
     ...content.categories,
     tiles: content.categories.tiles.map((t, i) => ({ ...t, id: t.id ?? `tile-${i}` }))
@@ -258,6 +328,19 @@ export function ContentForm({
           </Banner>
         </div>
       )}
+
+      <Section
+        title="Menu"
+        description="The links across the top of every page (For her, For him, Unisex…). Change the wording, the order and where each one goes."
+      >
+        <Card>
+          <MenuEditor
+            items={c.nav.items}
+            onChange={(fn) => setC((x) => ({ ...x, nav: { items: fn(x.nav.items) } }))}
+            options={linkOptions}
+          />
+        </Card>
+      </Section>
 
       <Section title="Announcement bar" description="The black strip at the very top of every page.">
         <Card>

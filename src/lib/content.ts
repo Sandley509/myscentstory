@@ -8,6 +8,8 @@
 import { SITE } from './site';
 
 export type SiteContent = {
+  /** Top menu. Empty = the automatic menu (Best sellers, New, your collections, All perfumes). */
+  nav: { items: NavLinkContent[] };
   announcement: {
     enabled: boolean;
     /** Empty = automatic ("Free shipping on orders over $X", or the tagline). */
@@ -54,6 +56,15 @@ export type SiteContent = {
   seo: { homeTitle: string; homeDescription: string };
 };
 
+export type NavLinkContent = {
+  /** Editor-only key that keeps edits attached to the right row; never stored. */
+  id?: string;
+  label: string;
+  link: string;
+};
+
+export const MAX_NAV_LINKS = 8;
+
 export type CategoryTileContent = {
   /** Editor-only key that keeps an upload attached to its tile; never stored. */
   id?: string;
@@ -68,6 +79,7 @@ export type CategoryTileContent = {
 export const MAX_CATEGORY_TILES = 4;
 
 export const DEFAULT_CONTENT: SiteContent = {
+  nav: { items: [] },
   announcement: { enabled: true, text: '', link: '' },
   hero: {
     eyebrow: SITE.tagline,
@@ -138,6 +150,13 @@ export function normalizeContent(raw: unknown): SiteContent {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Loose;
   const d = DEFAULT_CONTENT;
   return {
+    nav: {
+      items: (Array.isArray(r.nav?.items) ? (r.nav.items as unknown[]) : [])
+        .map((t) => (t && typeof t === 'object' ? (t as Record<string, unknown>) : {}))
+        .map((t) => ({ label: text(t.label, '', 30), link: cleanLink(t.link) }))
+        .filter((t) => t.label && t.link)
+        .slice(0, MAX_NAV_LINKS)
+    },
     announcement: {
       enabled: bool(r.announcement?.enabled, d.announcement.enabled),
       text: text(r.announcement?.text, d.announcement.text, 120),

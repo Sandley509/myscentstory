@@ -21,21 +21,30 @@ export function announcementFor(settings: StoreSettingsRow): ReactNode {
   );
 }
 
-export function Header({
-  settings,
-  collections,
-  announcement
-}: {
-  settings: StoreSettingsRow;
-  collections: Collection[];
-  announcement: SiteContent['announcement'];
-}) {
-  const announcementText = announcement.text || announcementFor(settings);
-  const nav = [
+/** The menu shown when nothing has been set in /admin → Online store → Menu. */
+export function automaticNav(collections: Collection[]) {
+  return [
     ...PRIMARY_NAV.slice(0, 2),
     ...collections.filter((c) => c.handle).slice(0, 5).map((c) => ({ title: c.title, path: c.path })),
     ...PRIMARY_NAV.slice(2)
   ];
+}
+
+export function Header({
+  settings,
+  collections,
+  announcement,
+  menu
+}: {
+  settings: StoreSettingsRow;
+  collections: Collection[];
+  announcement: SiteContent['announcement'];
+  menu?: SiteContent['nav'];
+}) {
+  const announcementText = announcement.text || announcementFor(settings);
+  const nav = menu?.items.length
+    ? menu.items.map((i) => ({ title: i.label, path: i.link }))
+    : automaticNav(collections);
   const storeName = settings.store_name || SITE.name;
 
   return (

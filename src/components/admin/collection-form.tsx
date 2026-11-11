@@ -196,7 +196,11 @@ export function CollectionForm({ initial, products }: { initial: CollectionInput
                 </Field>
               </div>
             </Card>
-            <Card title="Image">
+            <Card title="Banner photo">
+              <p className="mb-3 text-admin-subdued">
+                Shown across the top of this category’s page, with its name over it, and on the home page tile. Wide photo, about
+                2400 × 800 px. Without one the store draws its bottle artwork.
+              </p>
               <MediaUploader
                 single
                 folder="collections"

@@ -36,7 +36,7 @@ export default async function StoreLayout({ children }: { children: ReactNode })
           <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:bg-page focus:p-3">
             Skip to content
           </a>
-          <Header settings={settings} collections={collections} announcement={content.announcement} />
+          <Header settings={settings} collections={collections} announcement={content.announcement} menu={content.nav} />
           <main id="main" className="flex-1">
             {children}
           </main>

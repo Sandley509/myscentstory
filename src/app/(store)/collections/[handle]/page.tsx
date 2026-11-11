@@ -9,6 +9,7 @@ import { sorting } from '@/lib/constants';
 import { collectionJsonLd } from '@/lib/seo';
 import { SITE } from '@/lib/site';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -77,10 +78,29 @@ export default async function CollectionPage({ params, searchParams }: Props) {
       <div className="mx-auto max-w-7xl px-4 pt-6">
         <Breadcrumbs trail={[{ name: collection.title, path: collection.path }]} />
 
-        <div className={`${STAGE_BG} mt-5 grid items-center overflow-hidden text-white sm:grid-cols-2`}>
-          <BottleStage className="hidden h-44 sm:block" />
-          <h1 className="heading-caps px-6 py-12 text-center text-3xl sm:py-0 lg:text-4xl">{collection.title}</h1>
-        </div>
+        {/* Banner. The photo comes from /admin → Collections → this collection →
+            Banner photo; without one the store draws its bottle artwork. */}
+        {collection.image ? (
+          <div className={`${STAGE_BG} relative mt-5 flex h-44 items-center justify-center overflow-hidden text-white sm:h-56 lg:h-64`}>
+            <Image
+              src={collection.image.url}
+              alt=""
+              fill
+              priority
+              sizes="(min-width: 1280px) 1280px, 100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-black/35" />
+            <h1 className="heading-caps relative px-6 text-center text-3xl drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)] lg:text-4xl">
+              {collection.title}
+            </h1>
+          </div>
+        ) : (
+          <div className={`${STAGE_BG} mt-5 grid items-center overflow-hidden text-white sm:grid-cols-2`}>
+            <BottleStage className="hidden h-44 sm:block" />
+            <h1 className="heading-caps px-6 py-12 text-center text-3xl sm:py-0 lg:text-4xl">{collection.title}</h1>
+          </div>
+        )}
 
         <nav aria-label="Collections" className="mt-8 flex flex-wrap justify-center gap-2">
           {[ALL, ...collections.filter((c) => c.handle)].map((c) => (
