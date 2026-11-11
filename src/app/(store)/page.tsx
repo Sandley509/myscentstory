@@ -3,6 +3,7 @@ import { HomeTabs } from '@/components/store/home-tabs';
 import { ArrowIcon } from '@/components/store/icons';
 import { getCollectionProducts, getCollections, getProducts, getSiteContent } from '@/lib/commerce';
 import type { Collection } from '@/lib/commerce/types';
+import type { CategoryTileContent } from '@/lib/content';
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -28,15 +29,17 @@ const TILE_BG = [
   'bg-[linear-gradient(160deg,#3a3a3a,#0a0a0a)]'
 ];
 
-function CategoryTile({ collection, index, large = false }: { collection: Collection; index: number; large?: boolean }) {
+type Tile = { key: string; href: string; title: string; image?: string };
+
+function CategoryTile({ tile, index, large = false }: { tile: Tile; index: number; large?: boolean }) {
   return (
     <Link
-      href={collection.path}
+      href={tile.href}
       className={`group relative block overflow-hidden text-white ${large ? 'aspect-square lg:aspect-auto lg:h-full' : 'aspect-[4/3]'} ${TILE_BG[index % TILE_BG.length]}`}
     >
-      {collection.image ? (
+      {tile.image ? (
         <Image
-          src={collection.image.url}
+          src={tile.image}
           alt=""
           fill
           sizes={large ? '(min-width: 1024px) 50vw, 100vw' : '(min-width: 1024px) 25vw, 100vw'}
@@ -51,11 +54,28 @@ function CategoryTile({ collection, index, large = false }: { collection: Collec
           className="absolute bottom-0 right-[6%] h-[82%] w-auto drop-shadow-[0_18px_30px_rgba(0,0,0,0.5)] transition-transform duration-700 group-hover:scale-105"
         />
       )}
+      {tile.image && <span className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/45 to-transparent" />}
       <span className="absolute left-4 top-4 flex items-center gap-2 text-sm font-semibold tracking-wide">
-        {collection.title} <ArrowIcon width={16} height={16} />
+        {tile.title} <ArrowIcon width={16} height={16} />
       </span>
     </Link>
   );
+}
+
+/** Tiles chosen in /admin → Online store, or the first four collections when none are set. */
+function buildTiles(shelves: Collection[], chosen: CategoryTileContent[]): Tile[] {
+  if (!chosen.length) {
+    return shelves.slice(0, 4).map((c) => ({ key: c.handle, href: c.path, title: c.title, image: c.image?.url }));
+  }
+  return chosen.flatMap((t, i): Tile[] => {
+    if (t.collection === 'all') {
+      return [{ key: `all-${i}`, href: '/collections/all', title: t.label || 'All perfumes', image: t.imageUrl || undefined }];
+    }
+    const c = shelves.find((s) => s.handle === t.collection);
+    // A deleted or unpublished collection would lead to a 404, so its tile is skipped.
+    if (!c) return [];
+    return [{ key: `${c.handle}-${i}`, href: c.path, title: t.label || c.title, image: t.imageUrl || c.image?.url }];
+  });
 }
 
 export default async function HomePage() {
@@ -81,7 +101,7 @@ export default async function HomePage() {
   ].filter((t) => t.products.length);
 
   const families = [...new Set(bestSellers.map((p) => p.scentFamily).filter((f): f is string => !!f))].slice(0, 8);
-  const tiles = shelves.slice(0, 4);
+  const tiles = buildTiles(shelves, content.categories.tiles);
   const { hero, promo, families: familySection } = content;
 
   // A banner button that points at a collection which was later deleted or
@@ -205,12 +225,12 @@ export default async function HomePage() {
             {content.categories.title}
           </h2>
           <div className="grid gap-1 lg:grid-cols-2">
-            <CategoryTile collection={tiles[0]!} index={0} large />
+            <CategoryTile tile={tiles[0]!} index={0} large />
             {tiles.length > 1 && (
               <div className="grid gap-1 sm:grid-cols-2">
-                {tiles.slice(1).map((c, i) => (
-                  <div key={c.handle} className={i === 2 || tiles.length === 2 ? 'sm:col-span-2' : ''}>
-                    <CategoryTile collection={c} index={i + 1} />
+                {tiles.slice(1).map((t, i) => (
+                  <div key={t.key} className={i === 2 || tiles.length === 2 ? 'sm:col-span-2' : ''}>
+                    <CategoryTile tile={t} index={i + 1} />
                   </div>
                 ))}
               </div>

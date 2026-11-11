@@ -37,7 +37,11 @@ export type SiteContent = {
     text: string;
     imageUrl: string;
   };
-  categories: { title: string };
+  categories: {
+    title: string;
+    /** Up to 4 tiles; the first one is the large tile. Empty = the first 4 collections. */
+    tiles: CategoryTileContent[];
+  };
   /** First-visit popup offering a discount code. */
   welcome: {
     enabled: boolean;
@@ -49,6 +53,19 @@ export type SiteContent = {
   social: { instagram: string; facebook: string; tiktok: string };
   seo: { homeTitle: string; homeDescription: string };
 };
+
+export type CategoryTileContent = {
+  /** Editor-only key that keeps an upload attached to its tile; never stored. */
+  id?: string;
+  /** Collection handle, or "all" for the full catalogue. */
+  collection: string;
+  /** Empty = the collection's name. */
+  label: string;
+  /** Empty = the collection's image, then the bottle artwork. */
+  imageUrl: string;
+};
+
+export const MAX_CATEGORY_TILES = 4;
 
 export const DEFAULT_CONTENT: SiteContent = {
   announcement: { enabled: true, text: '', link: '' },
@@ -74,7 +91,7 @@ export const DEFAULT_CONTENT: SiteContent = {
     text: 'Know what you like? Start from the family and discover something new.',
     imageUrl: ''
   },
-  categories: { title: 'Discover by category' },
+  categories: { title: 'Discover by category', tiles: [] },
   welcome: {
     enabled: true,
     title: '10% off your first order',
@@ -104,10 +121,14 @@ const cleanUrl = (v: unknown): string => {
   return /^https:\/\//i.test(s) ? s : '';
 };
 
-/** An uploaded photo (https) or a file shipped in /public (e.g. /banners/hero.jpg). */
+/** Your own Supabase storage, which is plain http when Supabase runs on your computer. */
+const OWN_STORAGE = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/+$/, '');
+
+/** An uploaded photo (https or your own storage) or a file shipped in /public (e.g. /banners/hero.jpg). */
 const cleanImage = (v: unknown, fallback: string): string => {
   if (typeof v !== 'string') return fallback;
   const s = v.trim().slice(0, 1000);
+  if (OWN_STORAGE && s.startsWith(`${OWN_STORAGE}/storage/v1/`)) return s;
   return !s || /^\/(?!\/)/.test(s) || /^https:\/\//i.test(s) ? s : fallback;
 };
 
@@ -144,7 +165,18 @@ export function normalizeContent(raw: unknown): SiteContent {
       text: text(r.families?.text, d.families.text, 200),
       imageUrl: cleanImage(r.families?.imageUrl, d.families.imageUrl)
     },
-    categories: { title: text(r.categories?.title, d.categories.title, 60) || d.categories.title },
+    categories: {
+      title: text(r.categories?.title, d.categories.title, 60) || d.categories.title,
+      tiles: (Array.isArray(r.categories?.tiles) ? (r.categories.tiles as unknown[]) : [])
+        .map((t) => (t && typeof t === 'object' ? (t as Record<string, unknown>) : {}))
+        .map((t) => ({
+          collection: typeof t.collection === 'string' ? t.collection.trim().toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 100) : '',
+          label: text(t.label, '', 40),
+          imageUrl: cleanImage(t.imageUrl, '')
+        }))
+        .filter((t) => t.collection)
+        .slice(0, MAX_CATEGORY_TILES)
+    },
     welcome: {
       enabled: bool(r.welcome?.enabled, d.welcome.enabled),
       title: text(r.welcome?.title, d.welcome.title, 60) || d.welcome.title,

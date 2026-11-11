@@ -2,13 +2,14 @@
 
 import { MediaUploader } from '@/components/admin/inputs';
 import { SaveBar, Toast } from '@/components/admin/overlays';
-import { Banner, Card, Checkbox, Field, Page, TextArea, TextInput } from '@/components/admin/ui';
+import { Banner, Button, Card, Checkbox, Field, Page, Select, TextArea, TextInput } from '@/components/admin/ui';
 import { saveContent } from '@/lib/admin/actions/content';
-import { DEFAULT_CONTENT, type SiteContent } from '@/lib/content';
+import { DEFAULT_CONTENT, MAX_CATEGORY_TILES, type CategoryTileContent, type SiteContent } from '@/lib/content';
 import { useRouter } from 'next/navigation';
 import { useId, useMemo, useState, useTransition, type ReactNode } from 'react';
 
 type LinkOption = { label: string; value: string };
+export type CollectionOption = { handle: string; title: string; imageUrl: string | null };
 
 function Section({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
@@ -79,22 +80,137 @@ function ImageField({
   );
 }
 
+/** The category tiles on the home page: which collection each opens, its name and its photo. */
+function CategoryTilesEditor({
+  tiles,
+  onChange,
+  collections
+}: {
+  tiles: CategoryTileContent[];
+  /** Takes an updater so a photo that finishes uploading later never undoes edits made meanwhile. */
+  onChange: (update: (tiles: CategoryTileContent[]) => CategoryTileContent[]) => void;
+  collections: CollectionOption[];
+}) {
+  // By id, not position: a tile can move or be removed while its photo uploads.
+  const update = (id: string | undefined, patch: Partial<CategoryTileContent>) =>
+    onChange((ts) => ts.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  const move = (i: number, by: -1 | 1) =>
+    onChange((ts) => {
+      const next = [...ts];
+      [next[i], next[i + by]] = [next[i + by]!, next[i]!];
+      return next;
+    });
+  const unused = collections.find((c) => !tiles.some((t) => t.collection === c.handle));
+  const baseId = useId();
+
+  return (
+    <div className="flex flex-col gap-4">
+      {tiles.length === 0 && (
+        <p className="text-admin-subdued">No tiles chosen: the store shows your first four collections.</p>
+      )}
+      {tiles.map((t, i) => {
+        const col = collections.find((c) => c.handle === t.collection);
+        const missing = t.collection !== 'all' && !col;
+        return (
+          <div key={t.id ?? i} className="rounded-lg border border-admin-border p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-[13px] font-semibold">
+                Tile {i + 1}
+                <span className="ml-2 font-normal text-admin-subdued">{i === 0 ? 'Large tile on the left' : 'Small tile'}</span>
+              </h3>
+              <div className="flex gap-1">
+                <Button size="slim" variant="tertiary" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`Move tile ${i + 1} up`}>
+                  ↑
+                </Button>
+                <Button size="slim" variant="tertiary" disabled={i === tiles.length - 1} onClick={() => move(i, 1)} aria-label={`Move tile ${i + 1} down`}>
+                  ↓
+                </Button>
+                <Button size="slim" variant="tertiary" onClick={() => onChange((ts) => ts.filter((_, j) => j !== i))}>
+                  Remove
+                </Button>
+              </div>
+            </div>
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Field
+                  label="Opens"
+                  htmlFor={`${baseId}-${i}-collection`}
+                  error={missing ? 'This collection no longer exists or is hidden, so the tile is not shown. Pick another.' : null}
+                >
+                  <Select id={`${baseId}-${i}-collection`} value={t.collection} onChange={(e) => update(t.id, { collection: e.target.value })}>
+                    {missing && <option value={t.collection}>{t.collection} (missing)</option>}
+                    <option value="all">All perfumes</option>
+                    {collections.map((c) => (
+                      <option key={c.handle} value={c.handle}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Name on the tile" htmlFor={`${baseId}-${i}-label`} helpText="Leave empty to use the collection’s name.">
+                  <TextInput
+                    id={`${baseId}-${i}-label`}
+                    value={t.label}
+                    maxLength={40}
+                    placeholder={t.collection === 'all' ? 'All perfumes' : col?.title}
+                    onChange={(e) => update(t.id, { label: e.target.value })}
+                  />
+                </Field>
+              </div>
+              <ImageField
+                label="Photo"
+                value={t.imageUrl}
+                onChange={(url) => update(t.id, { imageUrl: url })}
+                helpText={
+                  (i === 0
+                    ? 'Square photo, at least 1200 × 1200 px.'
+                    : 'Landscape photo, about 1200 × 900 px.') +
+                  ' Keep the top-left corner fairly plain: the name sits there in white. ' +
+                  (col?.imageUrl ? 'Without one, the collection’s own image is used.' : 'Without one, the bottle artwork is shown.')
+                }
+              />
+            </div>
+          </div>
+        );
+      })}
+      {tiles.length < MAX_CATEGORY_TILES && (
+        <div>
+          <Button onClick={() => onChange((ts) => [...ts, { id: crypto.randomUUID(), collection: unused?.handle ?? 'all', label: '', imageUrl: '' }])}>
+            Add tile
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Gives each category tile an editor key (the server never stores it). */
+const withTileIds = (content: SiteContent): SiteContent => ({
+  ...content,
+  categories: {
+    ...content.categories,
+    tiles: content.categories.tiles.map((t, i) => ({ ...t, id: t.id ?? `tile-${i}` }))
+  }
+});
+
 const count = (value: string, max: number) => `${value.length} of ${max} characters used`;
 
 export function ContentForm({
   initial,
   linkOptions,
+  collections,
   automaticAnnouncement,
   setupNeeded
 }: {
   initial: SiteContent;
   linkOptions: LinkOption[];
+  collections: CollectionOption[];
   automaticAnnouncement: string;
   setupNeeded: boolean;
 }) {
   const router = useRouter();
-  const [saved, setSaved] = useState(initial);
-  const [c, setC] = useState(initial);
+  const [saved, setSaved] = useState(() => withTileIds(initial));
+  const [c, setC] = useState(() => withTileIds(initial));
   const [saving, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -110,8 +226,8 @@ export function ContentForm({
       const res = await saveContent(c);
       if (!res.ok) return setError(res.error);
       // Adopt the cleaned copy the server stored (trimmed text, rejected links removed).
-      setC(res.data);
-      setSaved(res.data);
+      setC(withTileIds(res.data));
+      setSaved(withTileIds(res.data));
       setToast('Online store updated');
       router.refresh();
     });
@@ -228,7 +344,7 @@ export function ContentForm({
 
       <Section
         title="Home page sections"
-        description="Headings for the product and category sections. The products come from your catalogue; category tiles use each collection’s image."
+        description="Headings for the product and scent family sections. The products come from your catalogue."
       >
         <Card title="Featured products">
           <Field label="Heading" helpText="Above the Best sellers / New / Gift sets tabs.">
@@ -256,10 +372,23 @@ export function ContentForm({
             )}
           </div>
         </Card>
-        <Card title="Categories">
-          <Field label="Heading" helpText="To change a tile’s picture, open the collection and upload an image.">
-            <TextInput value={c.categories.title} maxLength={60} onChange={(e) => set('categories', 'title', e.target.value)} />
-          </Field>
+      </Section>
+
+      <Section
+        title="Category tiles"
+        description="The picture tiles at the bottom of the home page (For her, For him, Unisex…). Choose up to four: which collection each one opens, its name and its photo."
+      >
+        <Card>
+          <div className="flex flex-col gap-4">
+            <Field label="Section heading">
+              <TextInput value={c.categories.title} maxLength={60} onChange={(e) => set('categories', 'title', e.target.value)} />
+            </Field>
+            <CategoryTilesEditor
+              tiles={c.categories.tiles}
+              onChange={(fn) => setC((x) => ({ ...x, categories: { ...x.categories, tiles: fn(x.categories.tiles) } }))}
+              collections={collections}
+            />
+          </div>
         </Card>
       </Section>
 

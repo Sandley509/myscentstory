@@ -12,7 +12,7 @@ export default async function ContentPage() {
   const { supabase } = await requireStaffPage();
   const [{ data, error }, { data: collections }, { data: settings }] = await Promise.all([
     supabase.from('site_content').select('content').eq('id', 1).maybeSingle(),
-    supabase.from('collections').select('handle, title').eq('published', true).order('sort_order').order('title'),
+    supabase.from('collections').select('handle, title, image_url').eq('published', true).order('sort_order').order('title'),
     supabase.from('store_settings').select('currency, free_shipping_threshold').eq('id', 1).maybeSingle()
   ]);
 
@@ -20,9 +20,19 @@ export default async function ContentPage() {
   const automaticAnnouncement =
     threshold > 0 ? `Free shipping on orders over ${formatPrice(threshold, settings?.currency ?? 'CAD')}` : SITE.tagline;
 
+  const published = ((collections ?? []) as { handle: string; title: string; image_url: string | null }[]).filter(
+    (c) => !c.handle.startsWith('hidden')
+  );
+  const initial = normalizeContent(data?.content);
+  // Nothing chosen yet: start from what the home page shows today (its first four collections).
+  if (!initial.categories.tiles.length) {
+    initial.categories.tiles = published.slice(0, 4).map((c) => ({ collection: c.handle, label: '', imageUrl: '' }));
+  }
+
   return (
     <ContentForm
-      initial={normalizeContent(data?.content)}
+      initial={initial}
+      collections={published.map((c) => ({ handle: c.handle, title: c.title, imageUrl: c.image_url }))}
       // The table only exists once 0003_site_content.sql has been run.
       setupNeeded={Boolean(error)}
       automaticAnnouncement={automaticAnnouncement}
@@ -30,7 +40,7 @@ export default async function ContentPage() {
         { label: 'All perfumes', value: '/collections/all' },
         { label: 'Best sellers', value: '/collections/all?sort=trending-desc' },
         { label: 'New arrivals', value: '/collections/all?sort=latest-desc' },
-        ...((collections ?? []) as { handle: string; title: string }[]).map((c) => ({
+        ...published.map((c) => ({
           label: `Collection: ${c.title}`,
           value: `/collections/${c.handle}`
         })),

@@ -150,7 +150,7 @@ edit the code itself in /admin → **Discounts**.
 ## Editing the storefront without code
 
 /admin → **Online store** edits the announcement bar, the main banner (photo, heading, text, button),
-the promo band, the home page section headings, the social links and the home page's Google title and
+the promo band, the home page section headings, the category tiles (which collection each opens, its name and photo), the social links and the home page's Google title and
 description. Changes go live on save. It needs `supabase/migrations/0003_site_content.sql`.
 The default banner photo is `public/banners/hero.jpg`.
 
