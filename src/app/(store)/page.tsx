@@ -21,6 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/** Products per tab in “Currently hot & loved”: two rows of four on desktop. */
+const HOME_PRODUCTS = 8;
+
 const TILE_ART = ['/art/bottle-3.svg', '/art/bottle-4.svg', '/art/bottle-2.svg', '/art/bottle-1.svg'];
 const TILE_BG = [
   'bg-[linear-gradient(160deg,#6d0f55,#2a0420)]',
@@ -93,10 +96,10 @@ export default async function HomePage() {
     : [];
 
   const tabs = [
-    { label: 'Best sellers', href: '/collections/all?sort=trending-desc', products: bestSellers.slice(0, 4) },
-    { label: 'New', href: '/collections/all?sort=latest-desc', products: newest.slice(0, 4) },
+    { label: 'Best sellers', href: '/collections/all?sort=trending-desc', products: bestSellers.slice(0, HOME_PRODUCTS) },
+    { label: 'New', href: '/collections/all?sort=latest-desc', products: newest.slice(0, HOME_PRODUCTS) },
     ...(giftCollection && giftSets.length
-      ? [{ label: giftCollection.title, href: giftCollection.path, products: giftSets.slice(0, 4) }]
+      ? [{ label: giftCollection.title, href: giftCollection.path, products: giftSets.slice(0, HOME_PRODUCTS) }]
       : [])
   ].filter((t) => t.products.length);
 

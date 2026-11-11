@@ -11,6 +11,12 @@ import { readWelcome, writeWelcome } from './welcome-storage';
 const DELAY_MS = 6000;
 
 /**
+ * Shown at most once per page load, even if the component is remounted (client
+ * navigation, a re-render after a cart action, Fast Refresh in development).
+ */
+let shownThisLoad = false;
+
+/**
  * First-visit offer: shown once, a few seconds after the first page view (or
  * when the visitor scrolls halfway). Never on checkout or order pages.
  */
@@ -26,22 +32,35 @@ export function WelcomeOffer({ offer }: { offer: SiteContent['welcome'] }) {
   const blocked = /^\/(checkout|track)/.test(pathname);
 
   useEffect(() => {
-    if (!offer.enabled || !offer.code || blocked || readWelcome()) return;
-    const show = () => setOpen(true);
-    const timer = window.setTimeout(show, DELAY_MS);
-    const onScroll = () => {
-      if (window.scrollY > document.body.scrollHeight * 0.4) show();
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
+    if (!offer.enabled || !offer.code || blocked || shownThisLoad || readWelcome()) return;
+    let done = false;
+    const stop = () => {
+      done = true;
       window.clearTimeout(timer);
       window.removeEventListener('scroll', onScroll);
     };
+    // Opens at most once per page load, and never after it was closed or claimed
+    // (also in another tab): the scroll trigger used to reopen it after "No thanks".
+    const show = () => {
+      if (done || shownThisLoad) return;
+      stop();
+      // Checked again here: the visitor may have dismissed it in another tab.
+      if (readWelcome()) return;
+      shownThisLoad = true;
+      setOpen(true);
+    };
+    const onScroll = () => {
+      if (window.scrollY > document.body.scrollHeight * 0.4) show();
+    };
+    const timer = window.setTimeout(show, DELAY_MS);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return stop;
   }, [offer.enabled, offer.code, blocked]);
 
   useEffect(() => {
     if (!open) return;
-    dialogRef.current?.querySelector<HTMLInputElement>('input')?.focus();
+    // Focus the dialog itself: focusing the email field would pop the phone keyboard up.
+    dialogRef.current?.focus();
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
@@ -49,6 +68,7 @@ export function WelcomeOffer({ offer }: { offer: SiteContent['welcome'] }) {
   }, [open]);
 
   const close = () => {
+    shownThisLoad = true;
     if (!claimed) writeWelcome({ status: 'dismissed', at: Date.now() });
     setOpen(false);
   };
@@ -74,9 +94,10 @@ export function WelcomeOffer({ offer }: { offer: SiteContent['welcome'] }) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="welcome-title"
-        className="relative w-full max-w-md overflow-hidden bg-page text-center shadow-2xl"
+        tabIndex={-1}
+        className="relative outline-none w-full max-w-md overflow-hidden bg-page text-center shadow-2xl"
       >
-        <button onClick={close} aria-label="Close" className="absolute right-3 top-3 z-10 p-1 text-white hover:opacity-80">
+        <button onClick={close} aria-label="Close" className="absolute right-1 top-1 z-10 flex h-11 w-11 items-center justify-center text-white hover:opacity-80">
           <CloseIcon />
         </button>
         <div className="bg-[radial-gradient(120%_140%_at_15%_0%,#5b0043_0%,#1a0614_60%,#000_100%)] px-8 pb-8 pt-10 text-white">
@@ -103,7 +124,7 @@ export function WelcomeOffer({ offer }: { offer: SiteContent['welcome'] }) {
               <p className="mt-2 text-xs text-muted" aria-live="polite">
                 {copied ? 'Copied.' : 'Tap to copy.'} It’s saved: we’ll apply it to your cart automatically.
               </p>
-              <button type="button" onClick={() => setOpen(false)} className="btn-solid mt-5 w-full">
+              <button type="button" onClick={close} className="btn-solid mt-5 w-full">
                 Start shopping
               </button>
             </>
