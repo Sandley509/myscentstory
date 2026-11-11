@@ -1,0 +1,324 @@
+@import 'tailwindcss';
+
+@theme {
+  /* -------------------------------------------------------------------------
+   * STOREFRONT THEME — this is the part you rebrand per project.
+   * Change these tokens (or the whole block) and the storefront follows.
+   * The admin has its own neutral palette below; leave that alone.
+   * ---------------------------------------------------------------------- */
+  --color-brand-50: #fbf4f9;
+  --color-brand-100: #f4e4ee;
+  --color-brand-200: #e6c3d9;
+  --color-brand-300: #cf93b9;
+  --color-brand-400: #a84f8c;
+  --color-brand-500: #7a1560;
+  --color-brand-600: #5b0043; /* the plum in the MyScentStory logo */
+  --color-brand-700: #46003a;
+  --color-brand-800: #300027;
+  --color-brand-900: #1c0017;
+
+  --color-accent: #c9a24e;
+
+  /* Surfaces & text */
+  --color-page: #ffffff;
+  --color-surface: #f4f1f2;
+  --color-line: #e4e0e2;
+  --color-fg: #0a0a0a;
+  --color-muted: #6f6a6d;
+  --color-danger: #b3261e;
+  --color-success: #17794c;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-serif: ui-serif, Georgia, 'Times New Roman', serif;
+  /* Storefront typeface (self-hosted through @fontsource, no request to Google). */
+  --font-store: 'Jost Variable', 'Century Gothic', 'Avenir Next', Avenir, ui-sans-serif, system-ui, sans-serif;
+
+  /* -------------------------------------------------------------------------
+   * ADMIN THEME — Shopify-admin-like neutrals. Shared by every project.
+   * ---------------------------------------------------------------------- */
+  --color-admin-bg: #f1f1f1;
+  --color-admin-card: #ffffff;
+  --color-admin-text: #303030;
+  --color-admin-subdued: #616161;
+  --color-admin-disabled: #b5b5b5;
+  --color-admin-border: #e3e3e3;
+  --color-admin-border-strong: #8a8a8a;
+  --color-admin-hover: #f7f7f7;
+  --color-admin-selected: #f1f1f1;
+  --color-admin-nav: #ebebeb;
+  --color-admin-top: #1a1a1a;
+  --color-admin-focus: #005bd3;
+  --color-admin-link: #005bd3;
+  --color-admin-success-bg: #affebf;
+  --color-admin-success-text: #014b40;
+  --color-admin-warning-bg: #ffeb78;
+  --color-admin-warning-text: #4f4700;
+  --color-admin-info-bg: #e0f0ff;
+  --color-admin-info-text: #00527c;
+  --color-admin-critical-bg: #fedad9;
+  --color-admin-critical-text: #8e0b21;
+  --color-admin-critical: #c70a24;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background-color: var(--color-page);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Storefront primitives
+ * ------------------------------------------------------------------------- */
+@layer components {
+  .store-root {
+    font-family: var(--font-store);
+    letter-spacing: 0.01em;
+  }
+  .btn-solid,
+  .btn-outline,
+  .btn-light {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3rem;
+    padding: 0 1.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    transition:
+      background-color 0.15s,
+      color 0.15s,
+      border-color 0.15s;
+  }
+  .btn-solid {
+    background: var(--color-fg);
+    color: #fff;
+    border: 1px solid var(--color-fg);
+  }
+  .btn-solid:hover:not(:disabled) {
+    background: var(--color-brand-600);
+    border-color: var(--color-brand-600);
+  }
+  .btn-solid:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-outline {
+    background: transparent;
+    color: var(--color-fg);
+    border: 1px solid var(--color-fg);
+  }
+  .btn-outline:hover {
+    background: var(--color-fg);
+    color: #fff;
+  }
+  .btn-light {
+    background: #fff;
+    color: var(--color-fg);
+    border: 1px solid #fff;
+  }
+  .btn-light:hover {
+    background: transparent;
+    color: #fff;
+  }
+  .heading-caps {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .eyebrow {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .store-root :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
+}
+
+/* Product description HTML written in the admin editor. */
+.prose-store h2,
+.prose-store h3 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.prose-store p {
+  margin-bottom: 0.75rem;
+  line-height: 1.7;
+}
+.prose-store ul,
+.prose-store ol {
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.prose-store ul {
+  list-style: disc;
+}
+.prose-store ol {
+  list-style: decimal;
+}
+.prose-store a {
+  text-decoration: underline;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Admin shell — scoped to /admin so the storefront theme is untouched.
+ * Kept in @layer components so Tailwind utilities can still override it.
+ * ------------------------------------------------------------------------- */
+@layer components {
+  .admin-root {
+    background: var(--color-admin-bg);
+    color: var(--color-admin-text);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 20px;
+    min-height: 100vh;
+  }
+  .admin-root h1,
+  .admin-root h2,
+  .admin-root h3 {
+    font-family: var(--font-sans);
+  }
+  .admin-root ::selection {
+    background: #cfe3ff;
+    color: inherit;
+  }
+  .admin-card {
+    background: var(--color-admin-card);
+    border-radius: 12px;
+    box-shadow:
+      0 1px 0 0 rgba(26, 26, 26, 0.07),
+      0 1px 0 0 rgba(204, 204, 204, 0.5) inset,
+      0 -1px 0 0 rgba(0, 0, 0, 0.17) inset,
+      -1px 0 0 0 rgba(0, 0, 0, 0.13) inset,
+      1px 0 0 0 rgba(0, 0, 0, 0.13) inset;
+  }
+  .admin-btn-primary {
+    background: linear-gradient(180deg, #3a3a3a 0%, #262626 100%);
+    box-shadow:
+      0 -1px 0 1px rgba(0, 0, 0, 0.8) inset,
+      0 0 0 1px #303030 inset,
+      0 0.5px 0 1.5px rgba(255, 255, 255, 0.25) inset;
+  }
+  .admin-btn-primary:hover {
+    background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  }
+  .admin-btn-secondary {
+    background: #fff;
+    box-shadow:
+      0 -1px 0 0 #b5b5b5 inset,
+      0 0 0 1px rgba(0, 0, 0, 0.1) inset,
+      0 0.5px 0 1.5px #fff inset;
+  }
+  .admin-btn-secondary:hover {
+    background: #f7f7f7;
+  }
+  .admin-input {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid #8a8a8a;
+    border-top-color: #898f94;
+    background: #fdfdfd;
+    padding: 5px 12px;
+    min-height: 32px;
+    color: var(--color-admin-text);
+    font-size: 13px;
+    outline: none;
+  }
+  .admin-input:hover {
+    background: #fafafa;
+  }
+  .admin-input:focus {
+    border-color: var(--color-admin-focus);
+    box-shadow: 0 0 0 1px var(--color-admin-focus);
+    background: #fff;
+  }
+  .admin-input::placeholder {
+    color: #8a8a8a;
+  }
+  .admin-table th {
+    font-weight: 500;
+    color: var(--color-admin-subdued);
+    background: #f7f7f7;
+    font-size: 12px;
+    text-align: left;
+    padding: 6px 12px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--color-admin-border);
+  }
+  .admin-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--color-admin-border);
+    vertical-align: middle;
+  }
+  .admin-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .admin-table tbody tr:hover td {
+    background: var(--color-admin-hover);
+  }
+  .admin-rte {
+    min-height: 160px;
+    padding: 10px 12px;
+    outline: none;
+  }
+  .admin-rte p {
+    margin-bottom: 0.5rem;
+  }
+  .admin-rte ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .admin-rte ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .admin-rte a {
+    color: var(--color-admin-link);
+    text-decoration: underline;
+  }
+  .admin-rte h2 {
+    font-size: 16px;
+    font-weight: 650;
+    margin-bottom: 0.5rem;
+  }
+  .admin-rte:empty::before {
+    content: attr(data-placeholder);
+    color: #8a8a8a;
+  }
+}
+
+/* Policy pages */
+.prose-page h2 {
+  margin-top: 2rem;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
