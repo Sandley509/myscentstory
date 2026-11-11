@@ -159,6 +159,9 @@ export async function startCheckout(): Promise<StartCheckoutResult> {
     client_reference_id: checkout.id,
     metadata: { checkout_id: checkout.id, cart_id: cart.id ?? '' },
     payment_intent_data: { metadata: { checkout_id: checkout.id } },
+    // Unpaid sessions expire after an hour (Stripe's minimum is 30 minutes), so an
+    // abandoned checkout shows up in /admin → Abandoned carts with its email soon.
+    expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
     success_url: `${origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/?checkout=cancelled`
   });

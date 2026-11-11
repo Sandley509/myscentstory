@@ -1,6 +1,6 @@
 'use server';
 
-import { addToCart, getCart, removeFromCart, setCartDiscount, subscribeToNewsletter, updateCart } from '@/lib/commerce';
+import { addToCart, getCart, removeFromCart, setCartDiscount, subscribeToNewsletter, attachEmailToCart, updateCart } from '@/lib/commerce';
 import { startCheckout } from '@/lib/commerce/checkout';
 import type { AttributeInput, Cart } from '@/lib/commerce/types';
 import { TAGS } from '@/lib/constants';
@@ -115,7 +115,9 @@ export async function checkout(): Promise<{ ok: false; error: string } | void> {
 /** Newsletter sign-up from the footer. */
 export async function subscribe(email: string): Promise<{ ok: boolean; error?: string }> {
   try {
-    return await subscribeToNewsletter(email);
+    const res = await subscribeToNewsletter(email);
+    if (res.ok) await attachEmailToCart(email).catch(() => undefined);
+    return res;
   } catch (e) {
     console.error('[newsletter]', e);
     return { ok: false, error: 'We couldn’t sign you up right now. Please try again.' };

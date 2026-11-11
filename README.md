@@ -41,8 +41,8 @@ you can see every page straight away. The demo disappears as soon as Supabase is
 
 1. Create a project at supabase.com.
 2. **SQL Editor → New query** → run `supabase/migrations/0001_commerce.sql`, then
-   `0002_perfume_merchant.sql`, then `0003_site_content.sql`, then `0004_tracking_emails_offers.sql`, then (optional)
-   `supabase/seed.sql`. Already live? Just run `0004` — it is safe to run twice.
+   `0002_perfume_merchant.sql`, then `0003_site_content.sql`, then `0004_tracking_emails_offers.sql`, then `0005_analytics_abandoned_carts.sql`, then (optional)
+   `supabase/seed.sql`. Already live? Run the ones you haven't run yet; each is safe to run twice.
 3. **Project Settings → API** → copy the project URL, the anon/publishable key and the
    service_role/secret key into `.env.local`.
 4. Create your admin login: `npm run create-admin` (see below).
@@ -53,7 +53,8 @@ you can see every page straight away. The demo disappears as soon as Supabase is
 1. Copy your secret key into `STRIPE_SECRET_KEY`.
 2. **Developers → Webhooks → Add endpoint**
    - URL `https://YOUR-DOMAIN/api/stripe/webhook`
-   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `charge.refunded`
+   - Events: `checkout.session.completed`, `checkout.session.async_payment_succeeded`,
+     `checkout.session.expired` (abandoned carts), `charge.refunded`
    - Put the signing secret in `STRIPE_WEBHOOK_SECRET`.
 3. Locally: `stripe listen --forward-to localhost:3000/api/stripe/webhook`.
 4. Turn on **Settings → Customer emails → Successful payments** so customers get receipts.
@@ -129,6 +130,32 @@ page; each can be emailed. "Delivered" also marks the order fulfilled.
 Customers track at **/track** with their order number and email (both are needed so nobody can
 look up someone else's order). The emails and the order-success page carry a private link that opens
 the tracking page directly.
+
+## Analytics and live view
+
+/admin → **Analytics** shows sessions, visitors, page views, conversion rate, sales, a conversion funnel
+(sessions → added to cart → reached checkout → purchased), top pages, where visitors came from, countries
+and devices, for today or the last 7, 30 or 90 days. **Live view** shows who is on the store right now
+(active in the last 5 minutes) and refreshes every 10 seconds.
+
+Visits are counted in your own Supabase database (migration `0005`), with no outside tracker. No IP
+address is stored; bots are ignored; data older than 13 months is deleted automatically.
+
+## Abandoned carts
+
+/admin → **Orders → Abandoned carts** lists carts with items left for over an hour without buying,
+with the value left behind. The email comes from the welcome offer, a first-order discount, or what the
+shopper typed at Stripe before leaving (that needs the `checkout.session.expired` webhook event; unpaid
+Stripe checkouts expire after one hour). **Send reminder** emails the shopper their cart with a private
+link that restores it on any device. Reminders are only sent when you click, and include how to opt out.
+
+## Maintenance mode
+
+Set `MAINTENANCE_MODE=on` to show shoppers a "back soon" page (HTTP 503, so Google knows it's temporary).
+The admin, the Stripe webhook and your product feeds keep working, and **you can still browse the store
+once you're logged in to /admin** (log in first, then open the store). Set it back to `off` to reopen.
+On Vercel: **Settings → Environment Variables**, change the value, then **Deployments → Redeploy**.
+Locally: edit `.env.local` and restart `npm run dev`.
 
 ## Currency converter
 

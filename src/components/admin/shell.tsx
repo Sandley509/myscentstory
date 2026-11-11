@@ -8,6 +8,7 @@ import {
   CustomersIcon,
   DiscountsIcon,
   ExternalIcon,
+  AnalyticsIcon,
   HomeIcon,
   LogoutIcon,
   MenuIcon,
@@ -61,7 +62,13 @@ export function AdminShell({
 
   const nav: NavItem[] = [
     { label: 'Home', href: '/admin', icon: HomeIcon, exact: true },
-    { label: 'Orders', href: '/admin/orders', icon: OrdersIcon, badge: ordersBadge },
+    {
+      label: 'Orders',
+      href: '/admin/orders',
+      icon: OrdersIcon,
+      badge: ordersBadge,
+      children: [{ label: 'Abandoned carts', href: '/admin/orders/abandoned' }]
+    },
     {
       label: 'Products',
       href: '/admin/products',
@@ -70,6 +77,12 @@ export function AdminShell({
     },
     { label: 'Customers', href: '/admin/customers', icon: CustomersIcon },
     { label: 'Discounts', href: '/admin/discounts', icon: DiscountsIcon },
+    {
+      label: 'Analytics',
+      href: '/admin/analytics',
+      icon: AnalyticsIcon,
+      children: [{ label: 'Live view', href: '/admin/analytics/live' }]
+    },
     { label: 'Online store', href: '/admin/content', icon: StoreIcon }
   ];
 
@@ -96,7 +109,8 @@ export function AdminShell({
               href={item.href}
               className={clsx(
                 'flex h-8 items-center gap-2 rounded-lg px-2 text-[13px] font-semibold',
-                active || (productsSection && isActive(item.href))
+                // A sub-page (e.g. Abandoned carts) highlights itself, not its parent too.
+                active
                   ? 'bg-white text-admin-text shadow-[0_1px_0_rgba(0,0,0,0.05)]'
                   : 'text-[#303030] hover:bg-black/5'
               )}

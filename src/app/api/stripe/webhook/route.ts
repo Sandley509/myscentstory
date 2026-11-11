@@ -1,3 +1,4 @@
+import { recordExpiredCheckout } from '@/lib/commerce/abandoned';
 import { sendOrderConfirmation } from '@/lib/commerce/notifications';
 import { createOrderFromSession, markSessionPaid, syncRefund } from '@/lib/commerce/orders';
 import { createServiceClient } from '@/lib/supabase/server';
@@ -16,6 +17,7 @@ export const dynamic = 'force-dynamic';
  *   URL:    https://YOUR-DOMAIN/api/stripe/webhook
  *   Events: checkout.session.completed,
  *           checkout.session.async_payment_succeeded,
+ *           checkout.session.expired   (abandoned carts),
  *           charge.refunded
  * Copy the signing secret into STRIPE_WEBHOOK_SECRET.
  */
@@ -54,6 +56,9 @@ export async function POST(req: NextRequest) {
       case 'checkout.session.async_payment_succeeded':
         await markSessionPaid(event.data.object);
         await confirm(event.data.object.id);
+        break;
+      case 'checkout.session.expired':
+        await recordExpiredCheckout(event.data.object);
         break;
       case 'charge.refunded':
         await syncRefund(event.data.object);

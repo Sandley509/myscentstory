@@ -4,6 +4,7 @@ import { CurrencyProvider } from '@/components/store/currency';
 import { Footer } from '@/components/store/footer';
 import { Header } from '@/components/store/header';
 import { JsonLd } from '@/components/store/json-ld';
+import { VisitTracker } from '@/components/store/visit-tracker';
 import { WelcomeOffer } from '@/components/store/welcome-offer';
 import { getCollections, getSiteContent, getStoreSettings } from '@/lib/commerce';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo';
@@ -43,6 +44,7 @@ export default async function StoreLayout({ children }: { children: ReactNode })
         </div>
         <WelcomeOffer offer={content.welcome} />
         <Analytics />
+        <VisitTracker />
       </CartProvider>
     </CurrencyProvider>
   );

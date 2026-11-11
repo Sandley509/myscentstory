@@ -1,6 +1,7 @@
 import { SalesChart } from '@/components/admin/sales-chart';
 import { RowLink } from '@/components/admin/row-link';
-import { Badge, ButtonLink, Card, Page, Thumbnail } from '@/components/admin/ui';
+import { Badge, Banner, ButtonLink, Card, Page, Thumbnail } from '@/components/admin/ui';
+import { isMaintenanceMode } from '@/lib/maintenance';
 import { requireStaffPage } from '@/lib/admin/auth';
 import { customerName, financialBadge, formatDate, formatMoney, fulfillmentBadge } from '@/lib/admin/format';
 import type { Metadata } from 'next';
@@ -104,6 +105,12 @@ export default async function AdminHome() {
   return (
     <Page title={`${greeting}, ${(staff.name || staff.email).split(/[\s@]/)[0]}`} subtitle="Here’s what’s happening with your store over the last 30 days.">
       <div className="flex flex-col gap-4">
+        {isMaintenanceMode() && (
+          <Banner tone="warning" title="Maintenance mode is on">
+            Shoppers see a “back soon” page. You can still browse the store because you’re logged in. To reopen, set{' '}
+            <code>MAINTENANCE_MODE=off</code> in your environment variables and redeploy.
+          </Banner>
+        )}
         <div className="admin-card grid grid-cols-2 divide-admin-border md:grid-cols-4 md:divide-x">
           {[
             { label: 'Total sales', value: formatMoney(sales, currency), sub: change === null ? null : `${change >= 0 ? '↑' : '↓'} ${Math.abs(change).toFixed(0)}% vs previous 30 days` },

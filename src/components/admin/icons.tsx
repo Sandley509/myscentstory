@@ -60,6 +60,9 @@ export const ImageIcon = (p: P) => (
 export const MenuIcon = (p: P) => (
   <svg {...base(p)}><path d="M3.5 6h13M3.5 10h13M3.5 14h13" /></svg>
 );
+export const AnalyticsIcon = (p: P) => (
+  <svg {...base(p)}><path d="M3.5 16.5h13" /><path d="M6 13.5v-3M10 13.5v-7M14 13.5V9" /></svg>
+);
 export const StoreIcon = (p: P) => (
   <svg {...base(p)}><path d="M3.5 8V16a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1V8M2.8 8h14.4l-1.7-4.4a1 1 0 0 0-.9-.6H5.4a1 1 0 0 0-.9.6L2.8 8Z" /><path d="M8 17v-4.5h4V17" /></svg>
 );

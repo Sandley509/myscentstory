@@ -27,3 +27,17 @@ export function verifyOrderToken(orderId: string, token: string | null | undefin
 
 export const trackingLink = (order: { id: string; order_number: number }) =>
   absoluteUrl(`/track?order=${order.order_number}&t=${orderToken(order.id)}`);
+
+/** Signed link that puts an abandoned cart back in the shopper's browser (reminder emails). */
+export function cartToken(cartId: string): string {
+  return createHmac('sha256', secret()).update(`cart:${cartId}`).digest('base64url').slice(0, 32);
+}
+
+export function verifyCartToken(cartId: string, token: string | null | undefined): boolean {
+  if (!token) return false;
+  const expected = Buffer.from(cartToken(cartId));
+  const given = Buffer.from(token);
+  return expected.length === given.length && timingSafeEqual(expected, given);
+}
+
+export const cartRecoveryLink = (cartId: string) => absoluteUrl(`/cart/recover?c=${cartId}&t=${cartToken(cartId)}`);

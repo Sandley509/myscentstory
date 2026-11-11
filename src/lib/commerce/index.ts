@@ -786,6 +786,25 @@ export async function subscribeToNewsletter(rawEmail: string): Promise<{ ok: boo
   return { ok: true };
 }
 
+/**
+ * Remembers the email a shopper gave (e.g. in the welcome popup) on their open
+ * cart, so it can get a reminder if they leave without paying. Never replaces
+ * an email the cart already has.
+ */
+export async function attachEmailToCart(rawEmail: string): Promise<void> {
+  if (usingMockData) return;
+  const email = String(rawEmail ?? '').trim().toLowerCase().slice(0, 254);
+  const id = await readCartCookie();
+  if (!id || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
+  const { error } = await createServiceClient()
+    .from('carts')
+    .update({ email })
+    .eq('id', id)
+    .eq('status', 'open')
+    .is('email', null);
+  if (error) console.error('[cart email]', error.message);
+}
+
 // ---------------------------------------------------------------------------
 // On-demand revalidation (kept for compatibility with /api/revalidate)
 // ---------------------------------------------------------------------------

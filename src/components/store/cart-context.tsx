@@ -26,6 +26,13 @@ export function CartProvider({ initialCart, children }: { initialCart?: Cart; ch
     refreshCart().then((fresh) => {
       if (!cancelled) setCart(fresh);
     });
+    // Arriving from a cart reminder email (/cart/recover → /?cart=open): show the cart.
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('cart') === 'open') {
+      setIsOpen(true);
+      url.searchParams.delete('cart');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    }
     return () => {
       cancelled = true;
     };

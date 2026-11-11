@@ -14,7 +14,15 @@ const PLUM = '#5b0043';
 const esc = (s: string | number | null | undefined) =>
   String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-type Base = { storeName: string; supportEmail: string; trackUrl: string };
+type Base = {
+  storeName: string;
+  supportEmail: string;
+  trackUrl: string;
+  /** Replaces the "Track your order" button. */
+  button?: { label: string; url: string };
+  /** Extra line in the footer (e.g. how to stop reminders). */
+  footerNote?: string;
+};
 
 function layout(b: Base, preheader: string, content: string) {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(b.storeName)}</title></head>
@@ -27,11 +35,11 @@ function layout(b: Base, preheader: string, content: string) {
 <tr><td style="padding:32px 32px 8px">${content}</td></tr>
 <tr><td style="padding:24px 32px 32px">
 <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="background:${PLUM}">
-<a href="${b.trackUrl}" style="display:inline-block;padding:14px 28px;color:#ffffff;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;text-decoration:none">Track your order</a>
+<a href="${b.button?.url ?? b.trackUrl}" style="display:inline-block;padding:14px 28px;color:#ffffff;font-size:13px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;text-decoration:none">${esc(b.button?.label ?? 'Track your order')}</a>
 </td></tr></table></td></tr>
 <tr><td style="padding:20px 32px;background:#0a0a0a;color:#bdbdbd;font-size:12px;line-height:18px">
 Questions? Reply to this email or write to <a href="mailto:${esc(b.supportEmail)}" style="color:#ffffff">${esc(b.supportEmail)}</a>.<br>
-${esc(SITE.legalName)} · <a href="${absoluteUrl('/pages/shipping')}" style="color:#bdbdbd">Shipping</a> · <a href="${absoluteUrl('/pages/returns')}" style="color:#bdbdbd">Returns</a>
+${b.footerNote ? `${esc(b.footerNote)}<br>` : ''}${esc(SITE.legalName)} · <a href="${absoluteUrl('/pages/shipping')}" style="color:#bdbdbd">Shipping</a> · <a href="${absoluteUrl('/pages/returns')}" style="color:#bdbdbd">Returns</a>
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
@@ -149,5 +157,52 @@ ${p(items.map((li) => `${li.quantity} × ${esc(li.title)}${li.variant_title ? ` 
   ]
     .filter(Boolean)
     .join('\n');
+  return { subject, html, text };
+}
+
+export type ReminderItem = { title: string; variantTitle: string | null; quantity: number; price: number; imageUrl: string | null };
+
+/** Reminder for a cart that was left without paying, with a link that restores it. */
+export function cartReminderEmail(
+  b: Omit<Base, 'trackUrl'>,
+  cart: { items: ReminderItem[]; currency: string; recoverUrl: string; discountCode: string | null; freeShippingOver: number }
+) {
+  const m = (n: number) => esc(formatMoney(n, cart.currency));
+  const subtotal = cart.items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const rows = cart.items
+    .map(
+      (i) => `<tr>
+<td width="64" style="padding:10px 0;border-bottom:1px solid #eeeeee">${
+        i.imageUrl?.startsWith('https://')
+          ? `<img src="${esc(i.imageUrl)}" width="56" height="56" alt="" style="display:block;width:56px;height:56px;object-fit:cover;background:#f4f1f2">`
+          : ''
+      }</td>
+<td style="padding:10px 12px;border-bottom:1px solid #eeeeee;font-size:14px;line-height:20px"><strong>${esc(i.title)}</strong>${
+        i.variantTitle ? `<br><span style="color:#6f6a6d">${esc(i.variantTitle)}</span>` : ''
+      }<br><span style="color:#6f6a6d">Qty ${i.quantity}</span></td>
+<td align="right" style="padding:10px 0;border-bottom:1px solid #eeeeee;font-size:14px;white-space:nowrap">${m(i.price * i.quantity)}</td></tr>`
+    )
+    .join('');
+  const subject = 'You left something in your cart';
+  const html = layout(
+    { ...b, trackUrl: cart.recoverUrl, button: { label: 'Complete your order', url: cart.recoverUrl } },
+    'Your selection is still waiting for you.',
+    `${h1('Still thinking it over?')}
+${p('You left these in your cart at ' + esc(b.storeName) + '. We’ve saved them for you: pick up right where you left off.')}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 4px">${rows}
+<tr><td colspan="2" style="padding:8px 0;font-size:14px;font-weight:bold">Subtotal</td><td align="right" style="padding:8px 0;font-size:14px;font-weight:bold">${m(subtotal)} ${esc(cart.currency)}</td></tr>
+</table>
+${cart.discountCode ? p(`Your code <strong>${esc(cart.discountCode)}</strong> is still applied.`) : ''}
+${cart.freeShippingOver > 0 ? p(`Free shipping on orders over ${m(cart.freeShippingOver)}.`) : ''}`
+  );
+  const text = [
+    'Still thinking it over? You left these in your cart:',
+    '',
+    ...cart.items.map((i) => `${i.quantity} × ${i.title}${i.variantTitle ? ` (${i.variantTitle})` : ''}: ${formatMoney(i.price * i.quantity, cart.currency)}`),
+    `Subtotal: ${formatMoney(subtotal, cart.currency)} ${cart.currency}`,
+    '',
+    `Complete your order: ${cart.recoverUrl}`,
+    b.footerNote ?? ''
+  ].join('\n');
   return { subject, html, text };
 }

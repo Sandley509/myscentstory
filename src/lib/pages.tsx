@@ -26,7 +26,7 @@ const list = (items: string[]) =>
   items.length <= 1 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 
 /** Bump when you change a policy; shown as "Last updated" on the page. */
-const POLICY_DATE = 'November 10, 2026';
+const POLICY_DATE = 'November 11, 2026';
 
 export function getStorePage(slug: string, settings: StoreSettingsRow): StorePage | undefined {
   const name = settings.store_name || SITE.name;
@@ -268,7 +268,9 @@ export function getStorePage(slug: string, settings: StoreSettingsRow): StorePag
               <li><strong>Payments:</strong> handled by Stripe. Your card details are entered on Stripe’s secure page and never reach or stay on our servers.</li>
               <li><strong>Email sign-up:</strong> your email address, if you join our list or claim the first-order discount.</li>
               <li><strong>Your approximate location:</strong> the country your connection comes from, worked out from your IP address, so prices can be shown in your currency. We don’t store it.</li>
-              <li><strong>Browsing:</strong> pages viewed and products added to the cart, only if you accept cookies (see below).</li>
+              <li><strong>Visit statistics:</strong> the pages you open, the website that sent you, your country and your type of device (phone, tablet or computer), linked to a random number stored in your browser, never to your name, email or IP address. We use them only to count visits and improve the shop, and delete them after 13 months.</li>
+              <li><strong>Your cart:</strong> the products in it. If you gave us your email (at checkout, in the welcome offer or with a discount code) and leave without ordering, we may email you a reminder; reply “unsubscribe” to stop.</li>
+              <li><strong>Advertising measurement:</strong> pages viewed and products added to the cart, shared with Google and Meta only if you accept cookies (see below).</li>
             </ul>
             <h2>How we use it</h2>
             <ul>
@@ -291,7 +293,7 @@ export function getStorePage(slug: string, settings: StoreSettingsRow): StorePag
             </p>
             <h2>Cookies and similar storage</h2>
             <ul>
-              <li><strong>Always on (needed for the shop to work):</strong> your cart, your currency choice and whether you’ve seen the welcome offer.</li>
+              <li><strong>Always on (needed for the shop to work):</strong> your cart, your currency choice, whether you’ve seen the welcome offer, and a random visitor number for our own visit statistics (kept in your browser for up to 13 months, never shared).</li>
               <li><strong>Only with your consent:</strong> Google Analytics, Google Ads and the Meta Pixel. You can decline in the cookie banner; the shop works the same either way.</li>
             </ul>
             <h2>How long we keep it</h2>
