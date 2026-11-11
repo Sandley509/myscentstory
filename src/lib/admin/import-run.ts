@@ -15,7 +15,16 @@ export type ImportItem = ImportProduct & {
   uploadedImages: { url: string; width: number | null; height: number | null }[];
 };
 
-export type ImportOutcome = { handle: string; title: string; result: 'created' | 'updated' | 'failed'; message?: string };
+export type ImportOutcome = {
+  handle: string;
+  title: string;
+  result: 'created' | 'updated' | 'failed';
+  message?: string;
+  /** Photos saved on the product by this import. */
+  imagesAttached: number;
+  /** Categories the product was put in (titles as written in the sheet). */
+  collections: string[];
+};
 
 export const MAX_BATCH = 25;
 const cleanList = (xs: unknown, max = 40) =>
@@ -56,6 +65,8 @@ export async function runImport(db: SupabaseClient, items: ImportItem[]): Promis
   for (const item of items) {
     const handle = slugify(String(item.handle ?? ''));
     const title = text(item.title, 255);
+    let imagesAttached = 0;
+    const assigned: string[] = [];
     try {
       if (!handle || !title) throw new Error('Missing title.');
       const variants = (Array.isArray(item.variants) ? item.variants : []).slice(0, 100);
@@ -128,20 +139,29 @@ export async function runImport(db: SupabaseClient, items: ImportItem[]): Promis
       const drop = (current ?? []).map((v) => v.id as string).filter((id) => !keep.has(id));
       if (drop.length) await db.from('product_variants').delete().in('id', drop);
 
-      // Photos: only added when the product has none yet, so a re-import never duplicates them.
+      // Photos. The sheet's file names are the contract: if the browser didn't
+      // upload one of them, stop rather than save a product missing a photo.
+      const wanted = cleanList(item.imageFiles, 20).length;
       const uploaded = (Array.isArray(item.uploadedImages) ? item.uploadedImages : [])
         .filter((i) => typeof i?.url === 'string' && allowedImage(i.url))
         .slice(0, 20);
+      if (wanted && uploaded.length < wanted) {
+        throw new Error(`Only ${uploaded.length} of ${wanted} photos were uploaded. Select every photo named in the sheet and import again.`);
+      }
       const urls = [
         ...uploaded,
         ...cleanList(item.imageUrls, 20)
           .filter((u) => /^https:\/\//i.test(u))
           .map((url) => ({ url, width: null, height: null }))
       ];
+      // Supplied photos replace the product's set, so photo 1 is the main image
+      // and importing the same sheet twice never piles up duplicates.
       if (urls.length) {
-        const { count } = await db.from('product_images').select('id', { count: 'exact', head: true }).eq('product_id', productId);
-        if (!count) {
-          const { error } = await db.from('product_images').insert(
+        const { error: clear } = await db.from('product_images').delete().eq('product_id', productId);
+        if (clear) throw new Error(clear.message);
+        const { data: saved, error } = await db
+          .from('product_images')
+          .insert(
             urls.map((img, position) => ({
               product_id: productId,
               url: img.url,
@@ -150,14 +170,17 @@ export async function runImport(db: SupabaseClient, items: ImportItem[]): Promis
               height: img.height,
               position
             }))
-          );
-          if (error) throw new Error(error.message);
-        }
+          )
+          .select('id');
+        if (error) throw new Error(error.message);
+        if (!saved?.length) throw new Error('Your account isn’t allowed to add product photos.');
+        imagesAttached = saved.length;
       }
 
       for (const name of cleanList(item.collections, 10)) {
         const collectionId = await collectionFor(name);
         if (!collectionId) continue;
+        assigned.push(name);
         const { data: linked } = await db
           .from('collection_products')
           .select('product_id')
@@ -172,19 +195,25 @@ export async function runImport(db: SupabaseClient, items: ImportItem[]): Promis
             .order('position', { ascending: false })
             .limit(1)
             .maybeSingle();
-          await db
+          const { data: link, error } = await db
             .from('collection_products')
-            .insert({ collection_id: collectionId, product_id: productId, position: (last?.position ?? -1) + 1 });
+            .insert({ collection_id: collectionId, product_id: productId, position: (last?.position ?? -1) + 1 })
+            .select('product_id');
+          if (error) throw new Error(`Category “${name}”: ${error.message}`);
+          // Row-level security returns no rows instead of an error.
+          if (!link?.length) throw new Error(`Your account isn’t allowed to put products in the “${name}” category.`);
         }
       }
 
-      outcomes.push({ handle, title, result: existing ? 'updated' : 'created' });
+      outcomes.push({ handle, title, result: existing ? 'updated' : 'created', imagesAttached, collections: assigned });
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Unknown error.';
       outcomes.push({
         handle,
         title: title ?? handle,
         result: 'failed',
+        imagesAttached,
+        collections: assigned,
         message: /column .*(gender|concentration|barcode|notes)/i.test(message)
           ? 'Run supabase/migrations/0002_perfume_merchant.sql in Supabase first.'
           : message

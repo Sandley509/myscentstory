@@ -84,15 +84,24 @@ account already confirmed and makes it the store **owner**. Then sign in at
 
 ## Importing products from Excel
 
-/admin → Products → **Import**. Choose an .xlsx file (one product per row), then select the photos it
-names in the *Image files* column (you can select a whole folder's photos at once). Check the preview
-and click Import. Photos upload straight to your Supabase storage.
+/admin → Products → **Import** brings in products, their photos and their categories in one go:
 
-- Required columns: **Title** and **Price**. Everything else is optional; hover a column header in the
-  template for what it does. *Download template* on the import page gives a blank sheet with examples.
+1. **Choose Excel file** — one product per row.
+2. **Choose photo folder** — pick the folder holding every photo named in the *Image files* column.
+   Nothing is uploaded yet; the photos are matched by file name.
+3. **Check the preview** — one row per product with its Handle, Title, Category and photo thumbnails,
+   then click Import. Photos go to your own Supabase storage.
+
+- Required columns: **Title** and **Price**. **Collections** is the category (it's created if it doesn't
+  exist yet) and **Image files** lists the photo file names separated by `;`, first one = main photo.
+  File names are matched exactly apart from capitals and spacing; .jpg, .jpeg, .png and .webp all work.
+- A product whose photo is missing from the folder, or whose photo is also listed by another product,
+  is shown **in red with the exact file name and is not imported** — photos are never skipped quietly.
+- After the import you get a summary: products created, products updated, photos attached, and any
+  failures with the reason.
 - Several sizes: extra rows with the same **Handle**, filling only Size, Price, SKU, Barcode, Inventory.
-- Importing again is safe: a product whose Handle already exists is updated (price, text, sizes), its
-  photos are kept, nothing is duplicated.
+- Importing again is safe: a product whose Handle already exists is updated, never duplicated, and its
+  photos are replaced by the ones in the sheet (so they never pile up).
 - Shopify product exports work too (Vendor, Body (HTML), Variant Price, Option1 Value, Image Src...).
 
 ## Adding a perfume (what Google and Meta need)

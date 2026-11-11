@@ -240,3 +240,54 @@ export function descriptionToHtml(text: string): string {
     .map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`)
     .join('');
 }
+
+// ---------------------------------------------------------------------------
+// Photo + category checks (shared by the preview and the server)
+// ---------------------------------------------------------------------------
+
+export type ProductCheck = {
+  /** File names written in the sheet that aren't among the selected photos. */
+  missingPhotos: string[];
+  /** File names this product shares with another product in the same sheet. */
+  duplicatePhotos: string[];
+  /** Selected photos for this product, in the sheet's order (photo 1 first). */
+  matched: { name: string; key: string }[];
+  /** True when the product must not be imported. */
+  blocked: boolean;
+};
+
+/**
+ * Checks every product's photo list against the names the person selected.
+ *
+ * `available` holds the normalised names of the selected files (fileKey).
+ * A product is blocked when a photo is missing, or when it lists a file that
+ * another product also lists — never attach one photo to two products silently.
+ */
+export function checkProducts(products: ImportProduct[], available: Set<string>): Map<string, ProductCheck> {
+  const owners = new Map<string, string[]>();
+  for (const p of products) {
+    for (const key of new Set(p.imageFiles.map(fileKey))) {
+      owners.set(key, [...(owners.get(key) ?? []), p.handle]);
+    }
+  }
+
+  const checks = new Map<string, ProductCheck>();
+  for (const p of products) {
+    const missingPhotos: string[] = [];
+    const duplicatePhotos: string[] = [];
+    const matched: { name: string; key: string }[] = [];
+    for (const name of p.imageFiles) {
+      const key = fileKey(name);
+      if ((owners.get(key)?.length ?? 0) > 1) duplicatePhotos.push(name);
+      else if (available.has(key)) matched.push({ name, key });
+      else missingPhotos.push(name);
+    }
+    checks.set(p.handle, {
+      missingPhotos,
+      duplicatePhotos,
+      matched,
+      blocked: missingPhotos.length > 0 || duplicatePhotos.length > 0
+    });
+  }
+  return checks;
+}
